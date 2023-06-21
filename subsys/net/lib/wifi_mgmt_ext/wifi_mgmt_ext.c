@@ -15,6 +15,8 @@
 
 #include "wpa_cli_zephyr.h"
 
+/* wait period before moving to next entry in list */
+#define CONNECTION_TIMEOUT 10
 /* Ensure 'strnlen' is available even with -std=c99. */
 size_t strnlen(const char *buf, size_t bufsz);
 
@@ -70,8 +72,9 @@ static int __stored_creds_to_params(struct wifi_credentials_personal *creds,
 
 	/* Defaults */
 	params->security = creds->header.type;
+	params->mfp = WIFI_MFP_OPTIONAL;
 	params->channel = WIFI_CHANNEL_ANY;
-	params->timeout = CONFIG_WIFI_MGMT_EXT_CONNECTION_TIMEOUT;
+	params->timeout = CONNECTION_TIMEOUT;
 
 	/* Security type (optional) */
 	if (creds->header.type > WIFI_SECURITY_TYPE_MAX) {
@@ -84,15 +87,6 @@ static int __stored_creds_to_params(struct wifi_credentials_personal *creds,
 		params->band = WIFI_FREQ_BAND_5_GHZ;
 	} else {
 		params->band = WIFI_FREQ_BAND_UNKNOWN;
-	}
-
-	/* MFP setting (default: optional) */
-	if (creds->header.flags & WIFI_CREDENTIALS_FLAG_MFP_DISABLED) {
-		params->mfp = WIFI_MFP_DISABLE;
-	} else if (creds->header.flags & WIFI_CREDENTIALS_FLAG_MFP_REQUIRED) {
-		params->mfp = WIFI_MFP_REQUIRED;
-	} else {
-		params->mfp = WIFI_MFP_OPTIONAL;
 	}
 
 	return 0;
@@ -143,7 +137,7 @@ static int add_network_from_credentials_struct_personal(struct wifi_credentials_
 		return -ENOEXEC;
 	}
 
-	LOG_INF("Connection requested");
+	LOG_INF("Connection requested\n");
 
 out:
 	if (cnx_params.psk) {
@@ -153,31 +147,6 @@ out:
 	if (cnx_params.ssid) {
 		k_free((void *)cnx_params.ssid);
 	}
-
-	if (creds->header.flags & WIFI_CREDENTIALS_FLAG_FAVORITE) {
-		z_wpa_cli_cmd_v("set_network %d priority 1", resp.network_id);
-	}
-
-	if (creds->header.flags & WIFI_CREDENTIALS_FLAG_2_4GHz) {
-		z_wpa_cli_cmd_v("set_network %d freq_list "
-			     "2412 2417 2422 2427 2432 2437 2442 "
-			     "2447 2452 2457 2462 2467 2472 2484", resp.network_id);
-	}
-
-	if (creds->header.flags & WIFI_CREDENTIALS_FLAG_5GHz) {
-		z_wpa_cli_cmd_v("set_network %d freq_list "
-			     "5180 5200 5220 5240 5260 5280 5300 "
-			     "5310 5320 5500 5520 5540 5560 5580 "
-			     "5600 5620 5640 5660 5680 5700 5745 "
-			     "5765 5785 5805 5825", resp.network_id);
-	}
-
-	/* Setting PMF to optional */
-	z_wpa_cli_cmd_v("set_network %d ieee80211w 1", resp.network_id);
-
-	z_wpa_cli_cmd_v("enable_network %d", resp.network_id);
-
-	z_wpa_cli_cmd_v("select_network %d", resp.network_id);
 
 	return ret;
 }

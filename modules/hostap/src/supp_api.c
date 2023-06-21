@@ -174,7 +174,6 @@ static int wpa_supp_supported_channels(struct wpa_supplicant *wpa_s, uint8_t ban
 
 	mode = get_mode_by_band(wpa_s, band);
 	if (!mode) {
-		wpa_printf(MSG_ERROR, "Unsupported or invalid band: %d", band);
 		return -EINVAL;
 	}
 
@@ -194,28 +193,6 @@ static int wpa_supp_supported_channels(struct wpa_supplicant *wpa_s, uint8_t ban
 	*chan_list = _chan_list;
 
 	return 0;
-}
-
-static int wpa_supp_band_chan_compat(struct wpa_supplicant *wpa_s, uint8_t band, uint8_t channel)
-{
-	struct hostapd_hw_modes *mode = NULL;
-	int i;
-
-	mode = get_mode_by_band(wpa_s, band);
-	if (!mode) {
-		wpa_printf(MSG_ERROR, "Unsupported or invalid band: %d", band);
-		return -EINVAL;
-	}
-
-	for (i = 0; i < mode->num_channels; i++) {
-		if (mode->channels[i].chan == channel) {
-			return mode->channels[i].freq;
-		}
-	}
-
-	wpa_printf(MSG_ERROR, "Channel %d not supported for band %d", channel, band);
-
-	return -EINVAL;
 }
 
 static inline void wpa_supp_restart_status_work(void)
@@ -476,6 +453,8 @@ int z_wpa_supplicant_connect(const struct device *dev,
 {
 	struct wpa_supplicant *wpa_s;
 	int ret = 0;
+	struct add_network_resp resp = {0};
+	char *chan_list = NULL;
 
 	if (!net_if_is_admin_up(net_if_lookup_by_dev(dev))) {
 		wpa_printf(MSG_ERROR,
@@ -500,10 +479,57 @@ int z_wpa_supplicant_connect(const struct device *dev,
 		goto out;
 	}
 
-	ret = wpas_add_and_config_network(wpa_s, params, false);
-	if (ret) {
-		wpa_printf(MSG_ERROR, "Failed to add and configure network for STA mode: %d", ret);
-		goto out;
+	wpa_printf(MSG_DEBUG, "NET added: %d\n", resp.network_id);
+
+	_wpa_cli_cmd_v("set_network %d ssid \"%s\"", resp.network_id, params->ssid);
+	_wpa_cli_cmd_v("set_network %d scan_ssid 1", resp.network_id);
+	_wpa_cli_cmd_v("set_network %d key_mgmt NONE", resp.network_id);
+	_wpa_cli_cmd_v("set_network %d ieee80211w 0", resp.network_id);
+	if (params->band) {
+		ret = wpa_supp_supported_channels(wpa_s, params->band, &chan_list);
+		if (ret < 0) {
+			_wpa_cli_cmd_v("remove_network %d", resp.network_id);
+			goto out;
+		}
+
+		if (chan_list) {
+			_wpa_cli_cmd_v("set_network %d freq_list%s", resp.network_id, chan_list);
+			k_free(chan_list);
+		}
+	}
+
+	if (params->security != WIFI_SECURITY_TYPE_NONE) {
+		if (params->security == WIFI_SECURITY_TYPE_SAE) {
+			if (params->sae_password) {
+				_wpa_cli_cmd_v("set_network %d sae_password \"%s\"",
+					resp.network_id, params->sae_password);
+			} else {
+				_wpa_cli_cmd_v("set_network %d sae_password \"%s\"",
+					resp.network_id, params->psk);
+			}
+			_wpa_cli_cmd_v("set_network %d key_mgmt SAE",
+				resp.network_id);
+		} else if (params->security == WIFI_SECURITY_TYPE_PSK_SHA256) {
+			_wpa_cli_cmd_v("set_network %d psk \"%s\"",
+				resp.network_id, params->psk);
+			_wpa_cli_cmd_v("set_network %d key_mgmt WPA-PSK-SHA256",
+				resp.network_id);
+		} else if (params->security == WIFI_SECURITY_TYPE_PSK) {
+			_wpa_cli_cmd_v("set_network %d psk \"%s\"",
+			resp.network_id, params->psk);
+			_wpa_cli_cmd_v("set_network %d key_mgmt WPA-PSK",
+				resp.network_id);
+		} else {
+			ret = -1;
+			wpa_printf(MSG_ERROR, "Unsupported security type: %d",
+				params->security);
+			goto out;
+		}
+
+		if (params->mfp) {
+			_wpa_cli_cmd_v("set_network %d ieee80211w %d",
+				resp.network_id, params->mfp);
+		}
 	}
 
 	if (params->channel != WIFI_CHANNEL_ANY) {
