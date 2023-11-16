@@ -178,7 +178,7 @@ static void rx_process(struct k_work *work)
 	rx_recovery();
 }
 
-static int tx_start(void)
+static int tx_start(bool indicate)
 {
 	uint8_t *buf;
 	size_t len;
@@ -187,6 +187,9 @@ static int tx_start(void)
 
 	pm_device_state_get(slm_uart_dev, &state);
 	if (state != PM_DEVICE_STATE_ACTIVE) {
+		if (indicate) {
+			(void)indicate_start();
+		}
 		return 1;
 	}
 
@@ -212,6 +215,16 @@ static void uart_callback(const struct device *dev, struct uart_event *evt, void
 
 	switch (evt->type) {
 	case UART_TX_DONE:
+		err = ring_buf_get_finish(&tx_buf, evt->data.tx.len);
+		if (err) {
+			LOG_ERR("UART_TX_DONE failure: %d", err);
+		}
+		if (ring_buf_is_empty(&tx_buf) == false) {
+			(void)tx_start(false);
+		} else {
+			k_sem_give(&tx_done_sem);
+		}
+		break;
 	case UART_TX_ABORTED:
 		err = ring_buf_get_finish(&tx_buf, evt->data.tx.len);
 		if (err) {
@@ -219,7 +232,7 @@ static void uart_callback(const struct device *dev, struct uart_event *evt, void
 				(evt->type == UART_TX_DONE) ? "DONE" : "ABORTED", err);
 		}
 		if (ring_buf_is_empty(&tx_buf) == false) {
-			tx_start();
+			(void)tx_start(false);
 		} else {
 			k_sem_give(&tx_done_sem);
 		}
@@ -271,8 +284,57 @@ static void uart_callback(const struct device *dev, struct uart_event *evt, void
 	}
 }
 
+int slm_uart_power_on(void)
+{
+	int err;
+
+	err = pm_device_action_run(uart_dev, PM_DEVICE_ACTION_RESUME);
+	if (err && err != -EALREADY) {
+		LOG_ERR("Can't resume UART: %d", err);
+		return err;
+	}
+
+	k_sleep(K_MSEC(100));
+
+	(void)atomic_set(&recovery_state, RECOVERY_IDLE);
+	err = rx_enable();
+	if (err) {
+		return err;
+	}
+
+	k_sem_give(&tx_done_sem);
+	(void)tx_start(false);
+
+	return 0;
+}
+
+int slm_uart_power_off(void)
+{
+	int err;
+
+	rx_disable();
+	err = pm_device_action_run(uart_dev, PM_DEVICE_ACTION_SUSPEND);
+	if (err && err != -EALREADY) {
+		LOG_ERR("Can't suspend UART: %d", err);
+	}
+
+	/* Write sync str to buffer, so it is send first when we power UART.*/
+	(void)slm_uart_tx_write(SLM_SYNC_STR, sizeof(SLM_SYNC_STR)-1, true, false);
+
+	return err;
+}
+
+bool slm_uart_can_context_send(const uint8_t *data, size_t len)
+{
+	if (!k_is_in_isr()) {
+		return true;
+	}
+	LOG_ERR("FIXME: Attempt to send UART message (of size %u) in ISR.", len);
+	return false;
+}
+
 /* Write the data to tx_buffer and trigger sending. */
-static int slm_uart_tx_write(const uint8_t *data, size_t len)
+int slm_uart_tx_write(const uint8_t *data, size_t len, bool print_full_debug, bool indicate)
 {
 	size_t ret;
 	size_t sent = 0;
@@ -286,7 +348,7 @@ static int slm_uart_tx_write(const uint8_t *data, size_t len)
 		} else {
 			/* Buffer full, block and start TX. */
 			k_sem_take(&tx_done_sem, K_FOREVER);
-			err = tx_start();
+			err = tx_start(indicate);
 			if (err) {
 				LOG_ERR("TX buf overflow, %d dropped. Unable to send: %d",
 					len - sent,
@@ -300,7 +362,7 @@ static int slm_uart_tx_write(const uint8_t *data, size_t len)
 	k_mutex_unlock(&mutex_tx_put);
 
 	if (k_sem_take(&tx_done_sem, K_NO_WAIT) == 0) {
-		err = tx_start();
+		err = tx_start(indicate);
 		if (err == 1) {
 			k_sem_give(&tx_done_sem);
 			return 0;
@@ -367,8 +429,10 @@ static int slm_uart_handler_init(void)
 
 	k_sem_give(&tx_done_sem);
 
-	/* Flush possibly pending data in case SLM was idle. */
-	tx_start();
+	err = slm_uart_tx_write(SLM_SYNC_STR, sizeof(SLM_SYNC_STR)-1, true, false);
+	if (err) {
+		return err;
+	}
 
 	return 0;
 }

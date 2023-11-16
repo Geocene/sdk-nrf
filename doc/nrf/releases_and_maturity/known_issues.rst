@@ -1351,7 +1351,17 @@ Serial LTE Modem
 
 The issues in this section are related to the :ref:`serial_lte_modem` application.
 
-.. rst-class:: wontfix v2-6-0 v2-5-2 v2-5-1 v2-5-0 v2-4-3 v2-4-2 v2-4-1 v2-4-0
+.. rst-class:: v2-5-0
+
+NCSDK-24757: SLM triggers the indication PIN immediately after the ``#XSLEEP=2`` AT command
+  When the ``#XSLEEP=2`` AT command disables the UART, it writes `Ready` to the UART TX buffer.
+  This immediately triggers the indication PIN, even though there is no incoming traffic or notifications.
+
+  **Affected platforms:** nRF9160, nRF9161, Thingy:91
+
+  **Workaround:** Manually cherry-pick and apply the commit with the fix from the ``main`` branch (commit hash: ``c17dd45ce5ec9738b7487f647dcb6ce86d78ff90``).
+
+.. rst-class:: v2-5-0 v2-4-2 v2-4-1 v2-4-0
 
 NCSDK-20457: Modem traces captured through UART are corrupted if RTT logs are simultaneously captured
   When capturing modem traces through UART with `Cellular Monitor`_ app and simultaneously capturing RTT logs, for example, with J-Link RTT Viewer, the modem trace misses packets, and captured packets might have incorrect information.
