@@ -101,7 +101,7 @@ server cluster Groups = 4 {
     kGroupNames = 0x1;
   }
 
-  bitmap NameSupportBitmap : bitmap8 {
+  bitmap NameSupportBitmap : BITMAP8 {
     kGroupNames = 0x80;
   }
 
@@ -1692,8 +1692,6 @@ endpoint 1 {
     callback attribute attributeList;
     ram      attribute featureMap default = 0;
     ram      attribute clusterRevision default = 4;
-
-    handle command Identify;
   }
 
   server cluster Descriptor {
@@ -1710,10 +1708,7 @@ endpoint 1 {
   }
 }
 endpoint 2 {
-  device type ma_onofflight = 256, version 2;
-
-  binding cluster Identify;
-  binding cluster OnOff;
+  device type anonymousEndpointType = 256, version 2;
 
   server cluster Identify {
     ram      attribute identifyTime default = 0x0;

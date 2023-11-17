@@ -66,7 +66,7 @@
 	}
 
 // This is an array of EmberAfAttributeMetadata structures.
-#define GENERATED_ATTRIBUTE_COUNT 193
+#define GENERATED_ATTRIBUTE_COUNT 192
 #define GENERATED_ATTRIBUTES                                                                                                          \
 	{                                                                                                                             \
 		/* Endpoint: 0, Cluster: Descriptor (server) */                                                                       \
@@ -867,8 +867,8 @@
       /* Endpoint: 1, Cluster: Thermostat (server) */ \
       .clusterId = 0x00000201, \
       .attributes = ZAP_ATTRIBUTE_INDEX(177), \
-      .attributeCount = 16, \
-      .clusterSize = 32, \
+      .attributeCount = 15, \
+      .clusterSize = 30, \
       .mask = ZAP_CLUSTER_MASK(SERVER) | ZAP_CLUSTER_MASK(INIT_FUNCTION) | ZAP_CLUSTER_MASK(PRE_ATTRIBUTE_CHANGED_FUNCTION), \
       .functions = chipFuncArrayThermostatServer, \
       .acceptedCommandList = ZAP_GENERATED_COMMANDS_INDEX( 65 ), \
@@ -879,7 +879,7 @@
   { \
       /* Endpoint: 1, Cluster: Temperature Measurement (client) */ \
       .clusterId = 0x00000402, \
-      .attributes = ZAP_ATTRIBUTE_INDEX(193), \
+      .attributes = ZAP_ATTRIBUTE_INDEX(192), \
       .attributeCount = 0, \
       .clusterSize = 0, \
       .mask = ZAP_CLUSTER_MASK(CLIENT), \
@@ -898,7 +898,7 @@
 // This is an array of EmberAfEndpointType structures.
 #define GENERATED_ENDPOINT_TYPES                                                                                       \
 	{                                                                                                              \
-		{ ZAP_CLUSTER_INDEX(0), 14, 104 }, { ZAP_CLUSTER_INDEX(14), 7, 58 },                                   \
+		{ ZAP_CLUSTER_INDEX(0), 14, 112 }, { ZAP_CLUSTER_INDEX(14), 7, 58 },                                   \
 	}
 
 // Largest attribute size is needed for various buffers
@@ -911,7 +911,7 @@ static_assert(ATTRIBUTE_LARGEST <= CHIP_CONFIG_MAX_ATTRIBUTE_STORE_ELEMENT_SIZE,
 #define ATTRIBUTE_SINGLETONS_SIZE (35)
 
 // Total size of attribute storage
-#define ATTRIBUTE_MAX_SIZE (162)
+#define ATTRIBUTE_MAX_SIZE (170)
 
 // Number of fixed endpoints
 #define FIXED_ENDPOINT_COUNT (2)
@@ -932,10 +932,7 @@ static_assert(ATTRIBUTE_LARGEST <= CHIP_CONFIG_MAX_ATTRIBUTE_STORE_ELEMENT_SIZE,
 // Array of device types
 #define FIXED_DEVICE_TYPES                                                                                             \
 	{                                                                                                              \
-		{ 0x00000016, 2 },                                                                                     \
-		{                                                                                                      \
-			0x00000301, 2                                                                                  \
-		}                                                                                                      \
+		{ 0x0016, 1 }, { 0x0301, 2 }                                                                           \
 	}
 
 // Array of device type offsets

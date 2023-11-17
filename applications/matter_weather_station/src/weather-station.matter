@@ -1741,8 +1741,7 @@ endpoint 0 {
   }
 }
 endpoint 1 {
-  device type ma_tempsensor = 770, version 2;
-
+  device type anonymousEndpointType = 770, version 2;
 
   server cluster Identify {
     ram      attribute identifyTime default = 0;
@@ -1780,8 +1779,7 @@ endpoint 1 {
   }
 }
 endpoint 2 {
-  device type ma_humiditysensor = 775, version 2;
-
+  device type anonymousEndpointType = 775, version 2;
 
   server cluster Identify {
     ram      attribute identifyTime default = 0;
@@ -1819,8 +1817,7 @@ endpoint 2 {
   }
 }
 endpoint 3 {
-  device type ma_pressuresensor = 773, version 2;
-
+  device type anonymousEndpointType = 773, version 2;
 
   server cluster Identify {
     ram      attribute identifyTime default = 0;

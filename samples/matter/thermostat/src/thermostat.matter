@@ -83,7 +83,7 @@ server cluster Identify = 3 {
   readonly attribute int16u clusterRevision = 65533;
 
   request struct IdentifyRequest {
-    int16u identifyTime = 0;
+    INT16U identifyTime = 0;
   }
 
   command access(invoke: manage) Identify(IdentifyRequest): DefaultSuccess = 0;
@@ -95,7 +95,7 @@ server cluster Groups = 4 {
     kGroupNames = 0x1;
   }
 
-  bitmap NameSupportBitmap : bitmap8 {
+  bitmap NameSupportBitmap : BITMAP8 {
     kGroupNames = 0x80;
   }
 
@@ -109,7 +109,7 @@ server cluster Groups = 4 {
 
   request struct AddGroupRequest {
     group_id groupID = 0;
-    char_string<16> groupName = 1;
+    CHAR_STRING groupName = 1;
   }
 
   request struct ViewGroupRequest {
@@ -126,27 +126,27 @@ server cluster Groups = 4 {
 
   request struct AddGroupIfIdentifyingRequest {
     group_id groupID = 0;
-    char_string<16> groupName = 1;
+    CHAR_STRING groupName = 1;
   }
 
   response struct AddGroupResponse = 0 {
-    enum8 status = 0;
+    ENUM8 status = 0;
     group_id groupID = 1;
   }
 
   response struct ViewGroupResponse = 1 {
-    enum8 status = 0;
+    ENUM8 status = 0;
     group_id groupID = 1;
-    char_string<16> groupName = 2;
+    CHAR_STRING groupName = 2;
   }
 
   response struct GetGroupMembershipResponse = 2 {
-    nullable int8u capacity = 0;
+    nullable INT8U capacity = 0;
     group_id groupList[] = 1;
   }
 
   response struct RemoveGroupResponse = 3 {
-    enum8 status = 0;
+    ENUM8 status = 0;
     group_id groupID = 1;
   }
 
@@ -158,28 +158,17 @@ server cluster Groups = 4 {
   fabric command access(invoke: manage) AddGroupIfIdentifying(AddGroupIfIdentifyingRequest): DefaultSuccess = 5;
 }
 
-/** The Descriptor Cluster is meant to replace the support from the Zigbee Device Object (ZDO) for describing a node, its endpoints and clusters. */
-server cluster Descriptor = 29 {
-  bitmap Feature : bitmap32 {
-    kTagList = 0x1;
+/** The Binding Cluster is meant to replace the support from the Zigbee Device Object (ZDO) for supporting the binding table. */
+server cluster Binding = 30 {
+  fabric_scoped struct TargetStruct {
+    optional node_id node = 1;
+    optional group_id group = 2;
+    optional endpoint_no endpoint = 3;
+    optional cluster_id cluster = 4;
+    fabric_idx fabricIndex = 254;
   }
 
-  struct DeviceTypeStruct {
-    devtype_id deviceType = 0;
-    int16u revision = 1;
-  }
-
-  struct SemanticTagStruct {
-    nullable vendor_id mfgCode = 0;
-    enum8 namespaceID = 1;
-    enum8 tag = 2;
-    optional nullable char_string label = 3;
-  }
-
-  readonly attribute DeviceTypeStruct deviceTypeList[] = 0;
-  readonly attribute cluster_id serverList[] = 1;
-  readonly attribute cluster_id clientList[] = 2;
-  readonly attribute endpoint_no partsList[] = 3;
+  attribute access(write: manage) TargetStruct binding[] = 0;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -198,7 +187,7 @@ server cluster Binding = 30 {
     fabric_idx fabricIndex = 254;
   }
 
-  attribute access(write: manage) TargetStruct binding[] = 0;
+  attribute TargetStruct binding[] = 0;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1434,8 +1423,7 @@ client cluster TemperatureMeasurement = 1026 {
 }
 
 endpoint 0 {
-  device type ma_rootdevice = 22, version 2;
-
+  device type rootdevice = 22, version 1;
   binding cluster OtaSoftwareUpdateProvider;
 
   server cluster Descriptor {
@@ -1791,6 +1779,16 @@ endpoint 1 {
     ram      attribute clusterRevision default = 1;
   }
 
+  server cluster Binding {
+    callback attribute binding;
+    callback attribute generatedCommandList;
+    callback attribute acceptedCommandList;
+    callback attribute eventList;
+    callback attribute attributeList;
+    ram      attribute featureMap default = 0;
+    ram      attribute clusterRevision default = 1;
+  }
+
   server cluster Thermostat {
     ram      attribute localTemperature;
     ram      attribute outdoorTemperature;
@@ -1811,7 +1809,5 @@ endpoint 1 {
     callback attribute attributeList;
     ram      attribute featureMap default = 0x3;
     ram      attribute clusterRevision default = 6;
-
-    handle command SetpointRaiseLower;
   }
 }

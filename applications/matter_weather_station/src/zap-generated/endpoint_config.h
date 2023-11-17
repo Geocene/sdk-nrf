@@ -939,8 +939,8 @@
 // This is an array of EmberAfEndpointType structures.
 #define GENERATED_ENDPOINT_TYPES                                                                                       \
 	{                                                                                                              \
-		{ ZAP_CLUSTER_INDEX(0), 15, 234 }, { ZAP_CLUSTER_INDEX(15), 3, 25 }, { ZAP_CLUSTER_INDEX(18), 3, 25 }, \
-			{ ZAP_CLUSTER_INDEX(21), 3, 25 },                                                              \
+		{ ZAP_CLUSTER_INDEX(0), 14, 236 }, { ZAP_CLUSTER_INDEX(14), 3, 27 }, { ZAP_CLUSTER_INDEX(17), 3, 27 }, \
+			{ ZAP_CLUSTER_INDEX(20), 3, 27 },                                                              \
 	}
 
 // Largest attribute size is needed for various buffers
@@ -953,7 +953,7 @@ static_assert(ATTRIBUTE_LARGEST <= CHIP_CONFIG_MAX_ATTRIBUTE_STORE_ELEMENT_SIZE,
 #define ATTRIBUTE_SINGLETONS_SIZE (35)
 
 // Total size of attribute storage
-#define ATTRIBUTE_MAX_SIZE (309)
+#define ATTRIBUTE_MAX_SIZE (317)
 
 // Number of fixed endpoints
 #define FIXED_ENDPOINT_COUNT (4)
@@ -974,10 +974,7 @@ static_assert(ATTRIBUTE_LARGEST <= CHIP_CONFIG_MAX_ATTRIBUTE_STORE_ELEMENT_SIZE,
 // Array of device types
 #define FIXED_DEVICE_TYPES                                                                                             \
 	{                                                                                                              \
-		{ 0x00000016, 2 }, { 0x00000302, 2 }, { 0x00000307, 2 },                                               \
-		{                                                                                                      \
-			0x00000305, 2                                                                                  \
-		}                                                                                                      \
+		{ 0x0016, 1 }, { 0x0302, 2 }, { 0x0307, 2 }, { 0x0305, 2 }                                             \
 	}
 
 // Array of device type offsets

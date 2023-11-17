@@ -53,7 +53,7 @@ server cluster Groups = 4 {
     kGroupNames = 0x1;
   }
 
-  bitmap NameSupportBitmap : bitmap8 {
+  bitmap NameSupportBitmap : BITMAP8 {
     kGroupNames = 0x80;
   }
 
