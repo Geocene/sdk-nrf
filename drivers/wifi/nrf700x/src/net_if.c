@@ -605,18 +605,11 @@ int nrf_wifi_if_start_zep(const struct device *dev)
 
 	if (!nrf_wifi_utils_is_mac_addr_valid(fmac_dev_ctx->fpriv->opriv,
 					      mac_addr)) {
-		status = nrf_wifi_get_mac_addr(vif_ctx_zep);
-		if (status != NRF_WIFI_STATUS_SUCCESS) {
-			LOG_ERR("%s: Failed to get MAC address",
-				__func__);
-			goto del_vif;
-		}
-		net_if_set_link_addr(vif_ctx_zep->zep_net_if_ctx,
-					vif_ctx_zep->mac_addr.addr,
-					WIFI_MAC_ADDR_LEN,
-					NET_LINK_ETHERNET);
-		mac_addr = vif_ctx_zep->mac_addr.addr;
-		mac_addr_len = WIFI_MAC_ADDR_LEN;
+		LOG_ERR("%s: Invalid MAC address: %s\n",
+			__func__,
+			net_sprint_ll_addr(mac_addr,
+					   mac_addr_len));
+		goto del_vif;
 	}
 
 	status = nrf_wifi_fmac_set_vif_macaddr(rpu_ctx_zep->rpu_ctx,
