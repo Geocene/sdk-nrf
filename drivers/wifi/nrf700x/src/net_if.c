@@ -826,9 +826,6 @@ int nrf_wifi_if_set_config_zep(const struct device *dev,
 			       const struct ethernet_config *config)
 {
 	struct nrf_wifi_vif_ctx_zep *vif_ctx_zep = NULL;
-	struct nrf_wifi_ctx_zep *rpu_ctx_zep = NULL;
-	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
-	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	int ret = -1;
 
 	if (!dev) {
@@ -844,32 +841,11 @@ int nrf_wifi_if_set_config_zep(const struct device *dev,
 		goto out;
 	}
 
-	ret = k_mutex_lock(&vif_ctx_zep->vif_lock, K_FOREVER);
-	if (ret != 0) {
-		LOG_ERR("%s: Failed to lock vif_lock", __func__);
-		goto out;
-	}
-
-	rpu_ctx_zep = vif_ctx_zep->rpu_ctx_zep;
-	if (!rpu_ctx_zep || !rpu_ctx_zep->rpu_ctx) {
-		LOG_DBG("%s: rpu_ctx_zep or rpu_ctx is NULL",
-			__func__);
-		goto unlock;
-	}
-
-	fmac_dev_ctx = rpu_ctx_zep->rpu_ctx;
-	def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
-	if (!def_dev_ctx) {
-		LOG_ERR("%s: def_dev_ctx is NULL",
-			__func__);
-		goto unlock;
-	}
-
 	if (type == ETHERNET_CONFIG_TYPE_MAC_ADDRESS) {
 		if (!net_eth_is_addr_valid((struct net_eth_addr *)&config->mac_address)) {
-			LOG_ERR("%s: Invalid MAC address",
+			LOG_ERR("%s: Invalid MAC address\n",
 				__func__);
-			goto unlock;
+			goto out;
 		}
 		memcpy(vif_ctx_zep->mac_addr.addr,
 		       config->mac_address.addr,
