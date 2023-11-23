@@ -566,49 +566,8 @@ config NRF_WIFI_BEAMFORMING
 	bool "Enable Wi-Fi beamforming. Enabling beamforming can provide slight improvement in performance where as disabling it can provide better power saving in low network activity applications"
 	default y
 
-config WIFI_NRF700X_SCAN_TIMEOUT_S
-	int "Scan timeout in seconds"
-	default 30
-
-config NRF_WIFI_2G_BAND
-	bool "Set operation band to 2.4GHz"
-	default y if NRF70_2_4G_ONLY
-
-config NRF_WIFI_5G_BAND
-	bool "Set operation band to 5GHz"
-	depends on !NRF70_2_4G_ONLY
-
-config NRF_WIFI_OP_BAND
-	int "Options to set operation band"
-	default 1 if NRF_WIFI_2G_BAND
-	default 2 if NRF_WIFI_5G_BAND
-	default 3
-	help
-	  Set this option to select frequency band
-	  1 - 2.4GHz
-	  2 - 5GHz
-	  3 - All ( 2.4GHz and 5GHz )
-
 config NRF_WIFI_IFACE_MTU
 	int "MTU for Wi-Fi interface"
 	range 576 2304 if NET_IPV4
 	range 1280 2304 if NET_IPV6
 	default 1500
-config WIFI_NRF700X_SKIP_LOCAL_ADMIN_MAC
-	bool "Suppress networks with non-individual MAC address as BSSID in the scan results"
-	help
-	  Wi-Fi access points use locally administered MAC address to manage
-	  multiple virtual interfaces, for geo-location usecase these networks
-	  from the virtual interfaces do not help in anyway as they are co-located with the primary interface
-	  that has globally unique MAC address.
-
-	  So, to save resources, this option drops such networks from the scan results.
-config WIFI_NRF700X_SCAN_DISABLE_DFS_CHANNELS
-	bool "Disables DFS channels in scan operation"
-	help
-	  This option disables inclusion of DFS channels in scan operation.
-	  This is useful to reduce the scan time, as DFS channels are seldom used.
-
-config NET_INTERFACE_NAME_LEN
-	# nordic_wlanN
-	default 15
