@@ -50,9 +50,7 @@ LOG_MODULE_REGISTER(audio_datapath, CONFIG_AUDIO_DATAPATH_LOG_LEVEL);
 /* Number of audio blocks given a duration */
 #define NUM_BLKS(d) ((d) / BLK_PERIOD_US)
 /* Single audio block size in number of samples (stereo) */
-/* clang-format off */
-#define BLK_SIZE_SAMPLES(r) (((r)*BLK_PERIOD_US) / 1000000)
-/* clang-format on */
+#define BLK_SIZE_SAMPLES(r) (((r) * BLK_PERIOD_US) / 1000000)
 /* Increment sample FIFO index by one block */
 #define NEXT_IDX(i) (((i) < (FIFO_NUM_BLKS - 1)) ? ((i) + 1) : 0)
 /* Decrement sample FIFO index by one block */
@@ -74,9 +72,7 @@ LOG_MODULE_REGISTER(audio_datapath, CONFIG_AUDIO_DATAPATH_LOG_LEVEL);
 #define APLL_FREQ_MIN	 36834
 #define APLL_FREQ_MAX	 42874
 /* Use nanoseconds to reduce rounding errors */
-/* clang-format off */
-#define APLL_FREQ_ADJ(t) (-((t)*1000) / 331)
-/* clang-format on */
+#define APLL_FREQ_ADJ(t) (-((t) * 1000) / 331)
 
 #define DRIFT_MEAS_PERIOD_US	   100000
 #define DRIFT_ERR_THRESH_LOCK	   16
@@ -84,13 +80,9 @@ LOG_MODULE_REGISTER(audio_datapath, CONFIG_AUDIO_DATAPATH_LOG_LEVEL);
 /* To get smaller corrections */
 #define DRIFT_REGULATOR_DIV_FACTOR 2
 
-/* To allow BLE transmission and (host -> HCI -> controller) */
-#if defined(CONFIG_BT_LL_ACS_NRF53)
-#define JUST_IN_TIME_TARGET_DLY_US (CONFIG_AUDIO_FRAME_DURATION_US - 3000)
-#else /* !CONFIG_BT_LL_ACS_NRF53 */
-#define JUST_IN_TIME_TARGET_DLY_US 3000
-#endif /* !CONFIG_BT_LL_ACS_NRF53 */
-#define JUST_IN_TIME_BOUND_US 2500
+/* 4000 us to allow BLE transmission and (host -> HCI -> controller) */
+#define JUST_IN_TIME_US		  (CONFIG_AUDIO_FRAME_DURATION_US - 4000)
+#define JUST_IN_TIME_THRESHOLD_US 2000
 
 /* How often to print under-run warning */
 #define UNDERRUN_LOG_INTERVAL_BLKS 5000
@@ -177,7 +169,7 @@ static size_t test_tone_size;
  * @note	Used to adjust audio clock to account for drift.
  *
  * @param	sdu_ref_us	Timestamp for SDU.
- * @param	frame_start_ts_us	Timestamp for I2S.
+ * @param	frame_start_ts	Timestamp for I2S.
  *
  * @return	Error in microseconds (err_us).
  */
@@ -195,7 +187,7 @@ static int32_t err_us_calculate(uint32_t sdu_ref_us, uint32_t frame_start_ts_us)
 		sdu_ref_us += CONFIG_AUDIO_FRAME_DURATION_US;
 	}
 
-	int64_t total_err = ((int64_t)sdu_ref_us - (int64_t)frame_start_ts_us);
+	int64_t total_err = ((int64_t)sdu_ref_us - (int64_t)frame_start_ts);
 
 	/* Store sign for later use, since remainder operation is undefined for negatives */
 	if (total_err < 0) {
@@ -273,7 +265,7 @@ static void audio_datapath_drift_compensation(uint32_t frame_start_ts_us)
 
 		ctrl_blk.drift_comp.ctr = 0;
 
-		int32_t err_us = DRIFT_MEAS_PERIOD_US - (ctrl_blk.prev_drift_sdu_ref_us -
+		int32_t err_us = DRIFT_MEAS_PERIOD_US - (ctrl_blk.previous_sdu_ref_us -
 							 ctrl_blk.drift_comp.meas_start_time_us);
 
 		int32_t freq_adj = APLL_FREQ_ADJ(err_us);
@@ -301,8 +293,7 @@ static void audio_datapath_drift_compensation(uint32_t frame_start_ts_us)
 
 		ctrl_blk.drift_comp.ctr = 0;
 
-		int32_t err_us =
-			err_us_calculate(ctrl_blk.prev_drift_sdu_ref_us, frame_start_ts_us);
+		int32_t err_us = err_us_calculate(ctrl_blk.previous_sdu_ref_us, frame_start_ts);
 
 		err_us /= DRIFT_REGULATOR_DIV_FACTOR;
 		int32_t freq_adj = APLL_FREQ_ADJ(err_us);
@@ -323,8 +314,7 @@ static void audio_datapath_drift_compensation(uint32_t frame_start_ts_us)
 
 		ctrl_blk.drift_comp.ctr = 0;
 
-		int32_t err_us =
-			err_us_calculate(ctrl_blk.prev_drift_sdu_ref_us, frame_start_ts_us);
+		int32_t err_us = err_us_calculate(ctrl_blk.previous_sdu_ref_us, frame_start_ts);
 
 		err_us /= DRIFT_REGULATOR_DIV_FACTOR;
 		int32_t freq_adj = APLL_FREQ_ADJ(err_us);
@@ -814,35 +804,8 @@ static void audio_datapath_just_in_time_check_and_adjust(uint32_t tx_sync_ts_us,
 		diff = (int64_t)tx_sync_ts_us - curr_ts_us;
 	}
 
-	/*
-	 * The diff should always be positive. If diff is a large negative number, it is likely
-	 * that wrapping has occurred. A small negative value however, may point to the application
-	 * sending data too late, and we need to drop data to get back in sync with the controller.
-	 */
-	if (diff < -((int64_t)UINT32_MAX / 2)) {
-		LOG_DBG("Timestamp wrap. diff: %lld", diff);
-		diff += UINT32_MAX;
-
-	} else if (diff < 0) {
-		LOG_DBG("tx_sync_ts_us: %u is earlier than curr_ts_us %u", tx_sync_ts_us,
-			curr_ts_us);
-	}
-
-	if (print_count % 100 == 0) {
-		if (IS_ENABLED(CONFIG_BT_LL_ACS_NRF53)) {
-			LOG_DBG("JIT diff: %lld us. Target: %u +/- %u",
-				CONFIG_AUDIO_FRAME_DURATION_US - diff,
-				CONFIG_AUDIO_FRAME_DURATION_US - JUST_IN_TIME_TARGET_DLY_US,
-				JUST_IN_TIME_BOUND_US);
-		} else {
-			LOG_DBG("JIT diff: %lld us. Target: %u +/- %u", diff,
-				JUST_IN_TIME_TARGET_DLY_US, JUST_IN_TIME_BOUND_US);
-		}
-	}
-	print_count++;
-
-	if ((diff < (JUST_IN_TIME_TARGET_DLY_US - JUST_IN_TIME_BOUND_US)) ||
-	    (diff > (JUST_IN_TIME_TARGET_DLY_US + JUST_IN_TIME_BOUND_US))) {
+	if ((diff < (JUST_IN_TIME_US - JUST_IN_TIME_THRESHOLD_US)) ||
+	    (diff > (JUST_IN_TIME_US + JUST_IN_TIME_THRESHOLD_US))) {
 		ret = audio_system_fifo_rx_block_drop();
 		if (ret) {
 			LOG_WRN("Not able to drop FIFO RX block");
@@ -878,9 +841,10 @@ static void audio_datapath_sdu_ref_update(const struct zbus_channel *chan)
 		if (ctrl_blk.stream_started) {
 			ctrl_blk.prev_drift_sdu_ref_us = tx_sync_ts_us;
 
-			if (adjust && tx_sync_ts_us != 0) {
-				audio_datapath_just_in_time_check_and_adjust(tx_sync_ts_us,
-									     curr_ts_us);
+			if (adjust && sdu_ref_us != 0) {
+				if (IS_ENABLED(CONFIG_BT_LL_ACS_NRF53)) {
+					audio_datapath_just_in_time_check_and_adjust(sdu_ref_us);
+				}
 			}
 		} else {
 			LOG_WRN("Stream not started - Can not update tx_sync_ts_us");
