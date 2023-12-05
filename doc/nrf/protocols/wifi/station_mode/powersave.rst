@@ -30,9 +30,9 @@ The nRF70 Series device can be in one of the following power states:
   In this state, the device consumes very low power (~2 µA) and does not retain any state information (apart from the values in the OTP memory).
   The device will only respond to a BUCKEN assertion to wake from the Shutdown state.
 
-The nRF70 Series transition to and from the Shutdown state is automatically managed by the nRF Wi-Fi driver.
-When the network interface is brought down, the nRF Wi-Fi driver puts the nRF70 Series device in Shutdown state.
-When the network interface is brought up, the nRF Wi-Fi driver puts the nRF70 Series device in Active state.
+The nRF70 Series transition to and from the Shutdown state is automatically managed by the Wi-Fi® driver.
+When the network interface is brought down, the Wi-Fi driver puts the nRF70 Series device in Shutdown state.
+When the network interface is brought up, the Wi-Fi driver puts the nRF70 Series device in Active state.
 
 .. note::
    The application needs to reinitialize the Wi-Fi association after the network interface is brought up.
@@ -76,18 +76,17 @@ The device wakes up to check buffered packets for a configured interval (DTIM, l
 Dynamic power save feature
 ==========================
 
-When the device is in Active mode due to packet transmission or packet reception, an inactivity timer is started with an :ref:`inactivity timer <ug_nrf70_developing_powersave_inactivity_timer>` value, and the device switches to Power Save mode when the timer expires and the Medium Access Control (MAC) layer is idle.
+When the device is in one of the Power Save modes and an application transmits a packet, the device transitions to Active mode for the packet transmission.
+Depending on the :ref:`inactivity timer <ug_nrf70_developing_powersave_inactivity_tomer>` value, it switches back to Power Save modes.
 This dynamic switching in and out of Power Save modes is called the dynamic power save feature.
-This feature is enabled by default.
-It helps the device to save power in low traffic scenarios and protects against intermittent traffic bursts.
 
-.. _ug_nrf70_developing_powersave_inactivity_timer:
+.. _ug_nrf70_developing_powersave_inactivity_tomer:
 
 Inactivity timer
 ================
 
 The application can configure the inactivity timer based on the traffic profile.
-After transmissions or receptions are completed and if the MAC layer is idle for a period that is equal to the inactivity timer, MAC switches to the Power Save mode.
+After transmissions are completed and if the Medium Access Control (MAC) layer is idle for a period that is equal to the inactivity timer, the MAC switches to the Power Save mode.
 
 You must keep the following in mind while choosing the inactivity timer:
 
