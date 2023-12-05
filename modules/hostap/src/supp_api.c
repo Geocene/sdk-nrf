@@ -506,6 +506,23 @@ int z_wpa_supplicant_connect(const struct device *dev,
 		goto out;
 	}
 
+	if (params->channel != WIFI_CHANNEL_ANY) {
+		int freq = chan_to_freq(params->channel);
+
+		if (freq < 0) {
+			ret = -1;
+			wpa_printf(MSG_ERROR, "Invalid channel %d",
+				params->channel);
+			goto out;
+		}
+		_wpa_cli_cmd_v("set_network %d scan_freq %d",
+			resp.network_id, freq);
+	}
+
+	/* enable and select network */
+	_wpa_cli_cmd_v("enable_network %d", resp.network_id);
+	_wpa_cli_cmd_v("select_network %d", resp.network_id);
+
 	wpa_supp_api_ctrl.dev = dev;
 	wpa_supp_api_ctrl.requested_op = CONNECT;
 	wpa_supp_api_ctrl.connection_timeout = params->timeout;
