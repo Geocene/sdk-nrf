@@ -35,8 +35,9 @@ For information on the included repositories and revisions, see `Repositories an
 IDE and tool support
 ********************
 
-`nRF Connect for Visual Studio Code extension <nRF Connect for Visual Studio Code_>`_ is the recommended IDE for |NCS| v2.5.2.
-See the :ref:`installation` section for more information about supported operating systems and toolchain.
+`nRF Connect for Visual Studio Code extension <nRF Connect for Visual Studio Code_>`_ is the only officially supported IDE for |NCS| v2.5.2.
+
+:ref:`gs_app_tcm`, used to install the |NCS| automatically from `nRF Connect for Desktop`_, is available for Windows, Linux, and macOS.
 
 Supported modem firmware
 ************************
