@@ -492,8 +492,8 @@ int rpu_init(void)
 
 	return 0;
 
-sr_gpio_remove:
-	sr_gpio_remove();
+ble_gpio_remove:
+	ble_gpio_remove();
 rpu_gpio_remove:
 	rpu_gpio_remove();
 out:
